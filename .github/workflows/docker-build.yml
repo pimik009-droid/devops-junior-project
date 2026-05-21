@@ -1,0 +1,23 @@
+name: Build Docker Image CI
+
+# Запускать этот процесс при любом пуше (push) в ветку main
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Скачиваем твой код из репозитория на сервер GitHub
+    - uses: actions/checkout@v3
+
+    # 2. Логинимся в Docker Hub (чтобы потом можно было загружать образы, но пока просто собираем)
+    # Примечание: Для полноценного пуша нужны секреты, пока просто собираем для проверки
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag my-image:$(date +%s)
+      
+    # 3. Выводим сообщение об успехе
+    - name: Success message
+      run: echo "Docker image built successfully!"
