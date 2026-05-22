@@ -1,0 +1,37 @@
+
+services:
+  # 1. Наше приложение (тот самый Python-сайт)
+  web-app:
+    build: .              # Сказать Докеру: "Собери образ из Dockerfile, который лежит в текущей папке (точка)"
+    ports:
+      - "8080:8080"       # Проброс портов: снаружи на компьютере порт 8080, внутри контейнера тоже 8080
+    networks:
+      - monitoring-net    # Подключить к общей сети "monitoring-net"
+    restart: always       # Если упадет, пусть сам перезапускается
+
+  # 2. Prometheus (сборщик метрик/статистики)
+  prometheus:
+    image: prom/prometheus:latest  # Взять готовый образ из интернета (не нужно строить самому)
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Подложить наш конфиг внутрь контейнера
+    ports:
+      - "9090:9090"       # Чтобы зайти в интерфейс Prometheus по адресу localhost:9090
+    networks:
+      - monitoring-net
+    restart: always
+
+  # 3. Grafana (красивые графики)
+  grafana:
+    image: grafana/grafana:latest  # Тоже готовый образ
+    ports:
+      - "3000:3000"       # Интерфейс Grafana будет доступен на localhost:3000
+    networks:
+      - monitoring-net
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123  # Задаем пароль для входа (логин: admin)
+    restart: always
+
+# Описание сети, которая соединит все эти три сервиса
+networks:
+  monitoring-net:
+    driver: bridge

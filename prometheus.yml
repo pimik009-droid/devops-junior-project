@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 15s # Как часто опрашивать цели
+
+scrape_configs:
+  # Мониторим сам Prometheus
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Здесь пока пусто, но потом мы добавим сюда наше приложение
+  - job_name: 'web-app'
+    static_configs:
+      - targets: ['web-app:8080']
