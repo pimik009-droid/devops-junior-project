@@ -28,7 +28,8 @@ services:
     networks:
       - monitoring-net
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123  # Задаем пароль для входа (логин: admin)
+        - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+        - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     restart: always
 
 # Описание сети, которая соединит все эти три сервиса
