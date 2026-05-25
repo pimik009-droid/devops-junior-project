@@ -17,7 +17,7 @@ services:
 
   # 2. Prometheus (сборщик метрик/статистики)
   prometheus:
-    image: prom/prometheus:latest  # Взять готовый образ из интернета (не нужно строить самому)
+    image: prom/prometheus:v3.11.3  # Взять готовый образ из интернета (не нужно строить самому)
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Подложить наш конфиг внутрь контейнера
     ports:
@@ -28,7 +28,7 @@ services:
 
   # 3. Grafana (красивые графики)
   grafana:
-    image: grafana/grafana:latest  # Тоже готовый образ
+    image: grafana/grafana:13.0.1-security-01  # Тоже готовый образ
     ports:
       - "3000:3000"       # Интерфейс Grafana будет доступен на localhost:3000
     networks:
