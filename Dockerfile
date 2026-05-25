@@ -1,12 +1,13 @@
-# 1. Берем за основу готовый образ с Python (как пустой контейнер с кухней)
-FROM python:3.9-slim
+FROM python:3.12-slim
 
-# 2. Кладем внутрь наши файлы (рецепт блюда)
 WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY app.py .
 
-# 3. Говорим, какую команду запустить при старте (включаем плиту)
-CMD ["python", "app.py"]
-
-# 4. Открываем дверь (порт), чтобы снаружи можно было зайти
 EXPOSE 8080
+
+CMD ["python", "app.py"]
