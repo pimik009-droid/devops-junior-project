@@ -36,9 +36,14 @@ services:
     environment:
         - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
         - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+        - grafana-data:/var/lib/grafana
     restart: always
 
 # Описание сети, которая соединит все эти три сервиса
 networks:
   monitoring-net:
     driver: bridge
+
+volumes:
+  grafana-data:
