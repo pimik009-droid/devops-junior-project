@@ -133,14 +133,14 @@ git --version
 
 ## Быстрый старт
 
-Пока улучшенная версия проекта находится в ветке `mentor-rebuild`, клонируйте именно ее:
+Клонируйте репозиторий:
 
 ```bash
-git clone --branch mentor-rebuild https://github.com/pimik09-droid/devops-junior-project.git
+git clone https://github.com/pimik09-droid/devops-junior-project.git
 cd devops-junior-project
 ```
 
-После будущего объединения изменений с веткой `main` параметр `--branch mentor-rebuild` больше не потребуется.
+
 
 ### 1. Создайте локальный файл переменных окружения
 
@@ -524,10 +524,4 @@ docker volume ls
 
 ## Статус проекта
 
-Проект является учебным DevOps-стендом для демонстрации базовых практик контейнеризации, мониторинга, хранения данных и автоматизированной настройки observability stack.
-
-Текущая рабочая версия развивается в ветке:
-
-```text
-mentor-rebuild
-```
+Актуальная стабильная версия проекта находится в основной ветке `main`.
