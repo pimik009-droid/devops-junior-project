@@ -422,9 +422,14 @@ FROM python:3.12-slim
 
 ```text
 .github/workflows/docker-build.yml
-```
 
-Workflow запускается при `push` в ветку `main` и проверяет, что Docker image приложения успешно собирается.
+
+Workflow запускается:
+
+- при создании или обновлении Pull Request в ветку `main`;
+- при `push` в ветку `main`.
+
+На этапе Pull Request workflow проверяет, что Docker image приложения успешно собирается до объединения изменений с основной веткой.
 
 Текущая версия workflow:
 
@@ -432,7 +437,7 @@ Workflow запускается при `push` в ветку `main` и прове
 - не выполняет deployment;
 - не заменяет полноценный CI/CD pipeline.
 
-Пока изменения проекта находятся в ветке `mentor-rebuild`, обновленный вариант будет применен к `main` после объединения веток.
+
 
 ---
 

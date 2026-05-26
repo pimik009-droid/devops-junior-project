@@ -1,8 +1,10 @@
 name: Build Docker Image CI
 
-# Запускать этот процесс при любом пуше (push) в ветку main
+# Проверять сборку при изменениях в main и в pull request перед merge
 on:
   push:
+    branches: [ "main" ]
+  pull_request:
     branches: [ "main" ]
 
 jobs:
