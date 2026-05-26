@@ -7,13 +7,20 @@ services:
       - "8080:8080"       # Проброс портов: снаружи на компьютере порт 8080, внутри контейнера тоже 8080
     networks:
       - monitoring-net    # Подключить к общей сети "monitoring-net"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     restart: always       # Если упадет, пусть сам перезапускается
 
   # 2. Prometheus (сборщик метрик/статистики)
   prometheus:
-    image: prom/prometheus:latest  # Взять готовый образ из интернета (не нужно строить самому)
+    image: prom/prometheus:v3.11.3  # Взять готовый образ из интернета (не нужно строить самому)
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml  # Подложить наш конфиг внутрь контейнера
+      - prometheus-data:/prometheus
     ports:
       - "9090:9090"       # Чтобы зайти в интерфейс Prometheus по адресу localhost:9090
     networks:
@@ -22,16 +29,25 @@ services:
 
   # 3. Grafana (красивые графики)
   grafana:
-    image: grafana/grafana:latest  # Тоже готовый образ
+    image: grafana/grafana:13.0.1-security-01  # Тоже готовый образ
     ports:
       - "3000:3000"       # Интерфейс Grafana будет доступен на localhost:3000
     networks:
       - monitoring-net
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin123  # Задаем пароль для входа (логин: admin)
+        - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+        - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+        - grafana-data:/var/lib/grafana
+        - ./grafana/provisioning:/etc/grafana/provisioning:ro
+        - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     restart: always
 
 # Описание сети, которая соединит все эти три сервиса
 networks:
   monitoring-net:
     driver: bridge
+
+volumes:
+  grafana-data:
+  prometheus-data:
