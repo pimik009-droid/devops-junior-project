@@ -1,6 +1,6 @@
-name: Build Docker Image CI
+name: Test and Build Application CI
 
-# Проверять сборку при изменениях в main и в pull request перед merge
+# Проверять тесты и сборку при изменениях в main и в pull request перед merge
 on:
   push:
     branches: [ "main" ]
@@ -8,18 +8,34 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  test-and-build:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Скачиваем твой код из репозитория на сервер GitHub
-    - uses: actions/checkout@v3
+      # 1. Скачать код репозитория на runner GitHub Actions
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    # 2. Логинимся в Docker Hub (чтобы потом можно было загружать образы, но пока просто собираем)
-    # Примечание: Для полноценного пуша нужны секреты, пока просто собираем для проверки
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image:$(date +%s)
-      
-    # 3. Выводим сообщение об успехе
-    - name: Success message
-      run: echo "Docker image built successfully!"
+      # 2. Использовать ту же основную версию Python, что и в Dockerfile
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # 3. Установить зависимости приложения и тестов
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+
+      # 4. Проверить endpoints приложения автоматическими тестами
+      - name: Run application tests
+        run: python -m pytest -v
+
+      # 5. Проверить, что Docker image приложения успешно собирается
+      - name: Build Docker image
+        run: docker build --file Dockerfile --tag devops-junior-project:test .
+
+      # 6. Вывести сообщение после успешного прохождения всех шагов
+      - name: Success message
+        run: echo "Tests passed and Docker image built successfully!"

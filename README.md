@@ -17,6 +17,7 @@
 - Endpoint `/health` для проверки доступности приложения.
 - Endpoint `/metrics` для экспорта Prometheus-метрик.
 - Docker healthcheck для контейнера приложения.
+- Автоматические тесты Flask endpoints через `pytest`.
 - Prometheus configuration для сбора метрик приложения.
 - Grafana data source provisioning.
 - Grafana dashboard provisioning.
@@ -24,7 +25,8 @@
 - Передача локальных credentials через `.env`.
 - Публичный шаблон переменных окружения `.env.example`.
 - Фиксированные версии Docker images для Prometheus и Grafana.
-- Базовый GitHub Actions workflow для проверки сборки Docker image приложения.
+- GitHub Actions workflow для запуска тестов приложения и проверки сборки Docker image.
+
 
 ---
 
@@ -60,6 +62,7 @@ Browser
 |---|---|
 | Python 3.12 | Среда выполнения приложения |
 | Flask | Web-приложение и HTTP endpoints |
+| pytest | Автоматическое тестирование endpoints приложения |
 | prometheus-client | Экспорт прикладных метрик |
 | Docker | Контейнеризация приложения |
 | Docker Compose | Запуск и объединение сервисов |
@@ -85,6 +88,9 @@ Browser
 │       │   └── dashboards.yml
 │       └── datasources/
 │           └── prometheus.yml
+├── tests/
+│   └── test_app.py
+├── requirements-dev.txt
 ├── .env.example
 ├── .gitignore
 ├── app.py
@@ -109,6 +115,8 @@ Browser
 | `grafana/provisioning/dashboards/dashboards.yml` | Настройка автоматической загрузки dashboards |
 | `grafana/dashboards/web-application-monitoring.json` | Dashboard Grafana в формате JSON |
 | `.github/workflows/docker-build.yml` | Базовая CI-проверка сборки Docker image |
+| `requirements-dev.txt` | Дополнительные зависимости для локального запуска тестов и CI |
+| `tests/test_app.py` | Автоматические тесты для `/`, `/health` и `/metrics` |
 
 ---
 
@@ -413,31 +421,64 @@ grafana/grafana:13.0.1-security-01
 ```dockerfile
 FROM python:3.12-slim
 ```
+## Автоматические тесты
+
+В проекте используются автоматические тесты `pytest` для проверки основных endpoints Flask-приложения:
+
+| Тест | Что проверяется |
+|---|---|
+| Главная страница `/` | HTTP-ответ `200` и наличие текста приложения |
+| Health endpoint `/health` | HTTP-ответ `200` и JSON `{"status":"ok"}` |
+| Metrics endpoint `/metrics` | HTTP-ответ `200` и наличие метрики `app_requests_total` |
+
+Для локального запуска тестов создайте виртуальное окружение и установите зависимости разработки:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+python -m pytest -v
+```
+
+Ожидаемый результат:
+
+```text
+3 passed
+```
 
 ---
 
 ## GitHub Actions
 
-В проекте есть базовый workflow:
+В проекте настроен workflow:
 
 ```text
 .github/workflows/docker-build.yml
-
+```
 
 Workflow запускается:
 
 - при создании или обновлении Pull Request в ветку `main`;
 - при `push` в ветку `main`.
 
-На этапе Pull Request workflow проверяет, что Docker image приложения успешно собирается до объединения изменений с основной веткой.
+Проверка выполняет следующие шаги:
+
+1. загружает код репозитория;
+2. устанавливает Python `3.12`, соответствующий базовой версии в `Dockerfile`;
+3. устанавливает зависимости приложения и тестов;
+4. запускает автоматические тесты через `python -m pytest -v`;
+5. собирает Docker image приложения.
+
+Таким образом, до объединения Pull Request с `main` автоматически проверяется:
+
+- корректная работа endpoints `/`, `/health` и `/metrics`;
+- успешная сборка Docker image приложения.
 
 Текущая версия workflow:
 
+- не проверяет запуск всего Docker Compose stack;
 - не публикует image в Docker Hub или другой registry;
-- не выполняет deployment;
-- не заменяет полноценный CI/CD pipeline.
-
-
+- не выполняет deployment.
 
 ---
 
@@ -512,7 +553,7 @@ docker volume ls
 - Добавить Nginx reverse proxy.
 - Добавить healthcheck для Prometheus и Grafana.
 - Расширить GitHub Actions проверками для pull requests.
-- Добавить Python tests и linting.
+- Добавить linting и статический анализ Python-кода.
 - Публиковать Docker image в container registry.
 - Добавить deployment на VPS.
 - Настроить Prometheus alerting rules.
