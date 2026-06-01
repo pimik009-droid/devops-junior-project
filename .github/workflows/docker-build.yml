@@ -1,6 +1,6 @@
 name: Test and Build Application CI
 
-# Проверять тесты и сборку при изменениях в main и в pull request перед merge
+# Проверять linting, тесты и сборку при изменениях в main и в pull request перед merge
 on:
   push:
     branches: [ "main" ]
@@ -22,20 +22,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      # 3. Установить зависимости приложения и тестов
+      # 3. Установить зависимости приложения, тестов и линтера
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-dev.txt
 
-      # 4. Проверить endpoints приложения автоматическими тестами
+      # 4. Проверить Python-код линтером Ruff
+      - name: Run Ruff linting
+        run: ruff check .
+
+      # 5. Проверить endpoints приложения автоматическими тестами
       - name: Run application tests
         run: python -m pytest -v
 
-      # 5. Проверить, что Docker image приложения успешно собирается
+      # 6. Проверить, что Docker image приложения успешно собирается
       - name: Build Docker image
         run: docker build --file Dockerfile --tag devops-junior-project:test .
 
-      # 6. Вывести сообщение после успешного прохождения всех шагов
+      # 7. Вывести сообщение после успешного прохождения всех шагов
       - name: Success message
-        run: echo "Tests passed and Docker image built successfully!"
+        run: echo "Linting, tests and Docker image build completed successfully!"

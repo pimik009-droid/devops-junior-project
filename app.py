@@ -1,5 +1,5 @@
 from flask import Flask, Response
-from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import CONTENT_TYPE_LATEST, Counter, generate_latest
 
 app = Flask(__name__)
 

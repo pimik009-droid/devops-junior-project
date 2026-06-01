@@ -25,7 +25,7 @@
 - Передача локальных credentials через `.env`.
 - Публичный шаблон переменных окружения `.env.example`.
 - Фиксированные версии Docker images для Prometheus и Grafana.
-- GitHub Actions workflow для запуска тестов приложения и проверки сборки Docker image.
+- GitHub Actions workflow для linting, запуска тестов приложения и проверки сборки Docker image.
 
 
 ---
@@ -63,12 +63,13 @@ Browser
 | Python 3.12 | Среда выполнения приложения |
 | Flask | Web-приложение и HTTP endpoints |
 | pytest | Автоматическое тестирование endpoints приложения |
+| Ruff | Linting и статический анализ Python-кода |
 | prometheus-client | Экспорт прикладных метрик |
 | Docker | Контейнеризация приложения |
 | Docker Compose | Запуск и объединение сервисов |
 | Prometheus | Сбор и хранение метрик |
 | Grafana | Визуализация метрик |
-| GitHub Actions | Проверка сборки Docker image |
+| GitHub Actions | CI для Ruff linting, pytest-тестов и проверки сборки Docker image |
 | Linux / WSL 2 | Рекомендуемая локальная среда запуска |
 
 ---
@@ -91,6 +92,7 @@ Browser
 ├── tests/
 │   └── test_app.py
 ├── requirements-dev.txt
+├── pyproject.toml
 ├── .env.example
 ├── .gitignore
 ├── app.py
@@ -114,9 +116,10 @@ Browser
 | `grafana/provisioning/datasources/prometheus.yml` | Автоматическое создание Prometheus data source |
 | `grafana/provisioning/dashboards/dashboards.yml` | Настройка автоматической загрузки dashboards |
 | `grafana/dashboards/web-application-monitoring.json` | Dashboard Grafana в формате JSON |
-| `.github/workflows/docker-build.yml` | Базовая CI-проверка сборки Docker image |
+| `.github/workflows/docker-build.yml` | CI workflow для Ruff linting, pytest-тестов и проверки сборки Docker image |
 | `requirements-dev.txt` | Дополнительные зависимости для локального запуска тестов и CI |
 | `tests/test_app.py` | Автоматические тесты для `/`, `/health` и `/metrics` |
+| `pyproject.toml` | Конфигурация Ruff linting для Python-кода |
 
 ---
 
@@ -437,6 +440,50 @@ grafana/grafana:13.0.1-security-01
 ```dockerfile
 FROM python:3.12-slim
 ```
+---
+
+## Linting
+
+В проекте используется `Ruff` для linting и статического анализа Python-кода.
+
+Ruff проверяет:
+
+- порядок импортов;
+- неиспользуемые импорты;
+- базовые ошибки оформления;
+- часть потенциально устаревшего Python-синтаксиса.
+
+Настройки Ruff находятся в файле:
+
+```text
+pyproject.toml
+```
+
+Локальная проверка:
+
+```bash
+ruff check .
+```
+
+Ожидаемый результат:
+
+```text
+All checks passed!
+```
+
+Если Ruff находит автоматически исправляемые проблемы, можно применить исправления командой:
+
+```bash
+ruff check . --fix
+```
+
+После автоматического исправления нужно обязательно посмотреть diff:
+
+```bash
+git --no-pager diff
+```
+---
+
 ## Автоматические тесты
 
 В проекте используются автоматические тесты `pytest` для проверки основных endpoints Flask-приложения:
@@ -481,12 +528,14 @@ Workflow запускается:
 
 1. загружает код репозитория;
 2. устанавливает Python `3.12`, соответствующий базовой версии в `Dockerfile`;
-3. устанавливает зависимости приложения и тестов;
-4. запускает автоматические тесты через `python -m pytest -v`;
-5. собирает Docker image приложения.
+3. устанавливает зависимости приложения, тестов и линтера;
+4. запускает linting через `ruff check .`;
+5. запускает автоматические тесты через `python -m pytest -v`;
+6. собирает Docker image приложения.
 
 Таким образом, до объединения Pull Request с `main` автоматически проверяется:
 
+- качество Python-кода через Ruff;
 - корректная работа endpoints `/`, `/health` и `/metrics`;
 - успешная сборка Docker image приложения.
 
@@ -499,6 +548,13 @@ Workflow запускается:
 ---
 
 ## Полезные команды
+
+```bash
+ruff check .
+python -m pytest -v
+docker compose config >/dev/null && echo COMPOSE_OK
+docker compose ps
+```
 
 ### Запуск всего stack
 
@@ -567,8 +623,7 @@ docker volume ls
 ## Возможные дальнейшие улучшения
 
 - Добавить Nginx reverse proxy.
-- Расширить GitHub Actions проверками для pull requests.
-- Добавить linting и статический анализ Python-кода.
+- Добавить проверку всего Docker Compose stack в CI.
 - Публиковать Docker image в container registry.
 - Добавить deployment на VPS.
 - Настроить Prometheus alerting rules.
