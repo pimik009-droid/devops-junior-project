@@ -16,7 +16,7 @@
   - `grafana`.
 - Endpoint `/health` для проверки доступности приложения.
 - Endpoint `/metrics` для экспорта Prometheus-метрик.
-- Docker healthcheck для контейнера приложения.
+- Docker healthcheck для `web-app`, `prometheus` и `grafana`.
 - Автоматические тесты Flask endpoints через `pytest`.
 - Prometheus configuration для сбора метрик приложения.
 - Grafana data source provisioning.
@@ -179,12 +179,12 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Ожидаемо должны быть запущены три сервиса:
+После запуска все три сервиса должны быть в состоянии `healthy`:
 
 ```text
 web-app      Up ... (healthy)
-prometheus   Up
-grafana      Up
+prometheus   Up ... (healthy)
+grafana      Up ... (healthy)
 ```
 
 ---
@@ -245,13 +245,19 @@ app_requests_total
 
 ## Docker healthcheck
 
-Для контейнера `web-app` настроен healthcheck, который регулярно обращается к endpoint `/health`.
+Для всех основных сервисов настроены Docker healthchecks:
+
+| Сервис | Что проверяется |
+|---|---|
+| `web-app` | endpoint `/health` внутри контейнера приложения |
+| `prometheus` | endpoint `/-/healthy` внутри контейнера Prometheus |
+| `grafana` | endpoint `/api/health` внутри контейнера Grafana |
 
 Это позволяет Docker различать два состояния:
 
 ```text
-Up              — процесс контейнера запущен
-Up (healthy)    — приложение действительно отвечает на healthcheck
+Up            — процесс контейнера запущен
+Up (healthy)  — сервис внутри контейнера действительно отвечает на healthcheck
 ```
 
 Проверить статус можно командой:
@@ -259,6 +265,16 @@ Up (healthy)    — приложение действительно отвеча
 ```bash
 docker compose ps
 ```
+
+После запуска все три сервиса должны быть в состоянии `healthy`:
+
+```text
+web-app      Up (healthy)
+prometheus   Up (healthy)
+grafana      Up (healthy)
+```
+
+Для `prometheus` и `grafana` проверки выполняются внутри контейнеров через `wget`.
 
 ---
 
@@ -551,7 +567,6 @@ docker volume ls
 ## Возможные дальнейшие улучшения
 
 - Добавить Nginx reverse proxy.
-- Добавить healthcheck для Prometheus и Grafana.
 - Расширить GitHub Actions проверками для pull requests.
 - Добавить linting и статический анализ Python-кода.
 - Публиковать Docker image в container registry.
