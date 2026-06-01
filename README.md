@@ -25,7 +25,7 @@
 - Передача локальных credentials через `.env`.
 - Публичный шаблон переменных окружения `.env.example`.
 - Фиксированные версии Docker images для Prometheus и Grafana.
-- GitHub Actions workflow для linting, запуска тестов приложения и проверки сборки Docker image.
+- GitHub Actions workflow для linting, запуска тестов, проверки сборки Docker image и Docker Compose stack.
 
 
 ---
@@ -69,7 +69,7 @@ Browser
 | Docker Compose | Запуск и объединение сервисов |
 | Prometheus | Сбор и хранение метрик |
 | Grafana | Визуализация метрик |
-| GitHub Actions | CI для Ruff linting, pytest-тестов и проверки сборки Docker image |
+| GitHub Actions | CI для Ruff linting, pytest-тестов, Docker build и проверки Docker Compose stack |
 | Linux / WSL 2 | Рекомендуемая локальная среда запуска |
 
 ---
@@ -531,23 +531,32 @@ Workflow запускается:
 3. устанавливает зависимости приложения, тестов и линтера;
 4. запускает linting через `ruff check .`;
 5. запускает автоматические тесты через `python -m pytest -v`;
-6. собирает Docker image приложения.
+6. собирает Docker image приложения;
+7. проверяет валидность Docker Compose конфигурации;
+8. запускает весь Docker Compose stack;
+9. дожидается состояния `healthy` для `web-app`, `prometheus` и `grafana`;
+10. проверяет health endpoints сервисов;
+11. останавливает и очищает stack после проверки.
 
 Таким образом, до объединения Pull Request с `main` автоматически проверяется:
 
 - качество Python-кода через Ruff;
 - корректная работа endpoints `/`, `/health` и `/metrics`;
-- успешная сборка Docker image приложения.
+- успешная сборка Docker image приложения;
+- валидность Docker Compose конфигурации;
+- запуск всего stack `web-app + prometheus + grafana`;
+- healthy-состояние всех сервисов monitoring stack.
 
 Текущая версия workflow:
 
-- не проверяет запуск всего Docker Compose stack;
 - не публикует image в Docker Hub или другой registry;
 - не выполняет deployment.
 
 ---
 
 ## Полезные команды
+
+### Проверки перед коммитом
 
 ```bash
 ruff check .
@@ -623,7 +632,6 @@ docker volume ls
 ## Возможные дальнейшие улучшения
 
 - Добавить Nginx reverse proxy.
-- Добавить проверку всего Docker Compose stack в CI.
 - Публиковать Docker image в container registry.
 - Добавить deployment на VPS.
 - Настроить Prometheus alerting rules.
