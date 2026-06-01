@@ -1,6 +1,6 @@
 name: Test and Build Application CI
 
-# Проверять linting, тесты и сборку при изменениях в main и в pull request перед merge
+# Проверять linting, тесты, сборку image и Docker Compose stack при изменениях в main и в pull request перед merge
 on:
   push:
     branches: [ "main" ]
@@ -10,6 +10,10 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+
+    env:
+      GRAFANA_ADMIN_USER: admin
+      GRAFANA_ADMIN_PASSWORD: ci_admin_password
 
     steps:
       # 1. Скачать код репозитория на runner GitHub Actions
@@ -40,6 +44,55 @@ jobs:
       - name: Build Docker image
         run: docker build --file Dockerfile --tag devops-junior-project:test .
 
-      # 7. Вывести сообщение после успешного прохождения всех шагов
+      # 7. Проверить конфигурацию Docker Compose
+      - name: Validate Docker Compose config
+        run: docker compose config >/dev/null
+
+      # 8. Запустить весь Docker Compose stack и дождаться healthy-состояния сервисов
+      - name: Run Docker Compose stack healthcheck
+        run: |
+          docker compose up -d --build
+          docker compose ps
+
+          for service in web-app prometheus grafana; do
+            container_id="$(docker compose ps -q "$service")"
+
+            if [ -z "$container_id" ]; then
+              echo "Container for service $service was not found"
+              docker compose ps
+              exit 1
+            fi
+
+            echo "Waiting for $service to become healthy..."
+
+            for i in {1..30}; do
+              status="$(docker inspect --format='{{.State.Health.Status}}' "$container_id")"
+              echo "$service health status: $status"
+
+              if [ "$status" = "healthy" ]; then
+                break
+              fi
+
+              sleep 5
+            done
+
+            if [ "$status" != "healthy" ]; then
+              echo "$service did not become healthy"
+              docker compose ps
+              docker compose logs "$service"
+              exit 1
+            fi
+          done
+
+          curl -fsS http://localhost:8080/health
+          curl -fsS http://localhost:9090/-/healthy
+          curl -fsS http://localhost:3000/api/health
+
+      # 9. Остановить stack после проверки даже при ошибке
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose down -v
+
+      # 10. Вывести сообщение после успешного прохождения всех шагов
       - name: Success message
-        run: echo "Linting, tests and Docker image build completed successfully!"
+        run: echo "Linting, tests, Docker image build and Docker Compose stack check completed successfully!"
