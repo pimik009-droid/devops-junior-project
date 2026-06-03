@@ -1,11 +1,16 @@
 name: Test and Build Application CI
 
-# Проверять linting, тесты, сборку image и Docker Compose stack при изменениях в main и в pull request перед merge
+# Проверять linting, тесты, сборку image и Docker Compose stack при изменениях в main и в pull request перед merge.
+# После merge в main публиковать Docker image в GitHub Container Registry.
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   test-and-build:
@@ -93,6 +98,30 @@ jobs:
         if: always()
         run: docker compose down -v
 
-      # 10. Вывести сообщение после успешного прохождения всех шагов
+      # 10. Войти в GitHub Container Registry только после merge/push в main
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # 11. Собрать image с тегами для GitHub Container Registry
+      - name: Build GHCR image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker build \
+            --file Dockerfile \
+            --tag "$IMAGE_NAME:latest" \
+            --tag "$IMAGE_NAME:${GITHUB_SHA}" \
+            .
+
+      # 12. Опубликовать image в GitHub Container Registry
+      - name: Push GHCR image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker push "$IMAGE_NAME:latest"
+          docker push "$IMAGE_NAME:${GITHUB_SHA}"
+
+      # 13. Вывести сообщение после успешного прохождения всех шагов
       - name: Success message
-        run: echo "Linting, tests, Docker image build and Docker Compose stack check completed successfully!"
+        run: echo "Linting, tests, Docker image build, Docker Compose stack check and optional GHCR publish completed successfully!"
