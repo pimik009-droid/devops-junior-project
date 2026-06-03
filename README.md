@@ -25,7 +25,7 @@
 - Передача локальных credentials через `.env`.
 - Публичный шаблон переменных окружения `.env.example`.
 - Фиксированные версии Docker images для Prometheus и Grafana.
-- GitHub Actions workflow для linting, запуска тестов, проверки сборки Docker image и Docker Compose stack.
+- GitHub Actions workflow для linting, запуска тестов, проверки сборки Docker image, Docker Compose stack и публикации image в GHCR.
 
 
 ---
@@ -69,7 +69,8 @@ Browser
 | Docker Compose | Запуск и объединение сервисов |
 | Prometheus | Сбор и хранение метрик |
 | Grafana | Визуализация метрик |
-| GitHub Actions | CI для Ruff linting, pytest-тестов, Docker build и проверки Docker Compose stack |
+| GitHub Actions | CI для Ruff linting, pytest-тестов, Docker build, Docker Compose stack и публикации image |
+| GitHub Container Registry | Хранение опубликованного Docker image |
 | Linux / WSL 2 | Рекомендуемая локальная среда запуска |
 
 ---
@@ -536,7 +537,10 @@ Workflow запускается:
 8. запускает весь Docker Compose stack;
 9. дожидается состояния `healthy` для `web-app`, `prometheus` и `grafana`;
 10. проверяет health endpoints сервисов;
-11. останавливает и очищает stack после проверки.
+11. останавливает и очищает stack после проверки;
+12. при `push` в `main` входит в GitHub Container Registry;
+13. собирает Docker image с тегами `latest` и commit SHA;
+14. публикует image в GitHub Container Registry.
 
 Таким образом, до объединения Pull Request с `main` автоматически проверяется:
 
@@ -547,12 +551,41 @@ Workflow запускается:
 - запуск всего stack `web-app + prometheus + grafana`;
 - healthy-состояние всех сервисов monitoring stack.
 
+Публикация Docker image выполняется только после объединения изменений в `main`.
+
+На Pull Request image не публикуется: PR выполняет только проверки.
+
 Текущая версия workflow:
 
-- не публикует image в Docker Hub или другой registry;
+- на Pull Request выполняет проверки без публикации image;
+- после merge в `main` публикует image в GitHub Container Registry;
 - не выполняет deployment.
 
 ---
+
+## Docker image registry
+
+После успешного merge в `main` GitHub Actions публикует Docker image приложения в GitHub Container Registry.
+
+Image публикуется с двумя тегами:
+
+```text
+ghcr.io/pimik009-droid/devops-junior-project:latest
+ghcr.io/pimik009-droid/devops-junior-project:<commit-sha>
+```
+
+Где:
+
+- `latest` — последняя успешная версия из ветки `main`;
+- `<commit-sha>` — точная версия image, связанная с конкретным commit.
+
+Pull Request не публикует image в registry. Публикация выполняется только после `push` в `main`.
+
+Локально image можно собрать командой:
+
+```bash
+docker build --file Dockerfile --tag devops-junior-project:test .
+```
 
 ## Полезные команды
 
@@ -632,7 +665,6 @@ docker volume ls
 ## Возможные дальнейшие улучшения
 
 - Добавить Nginx reverse proxy.
-- Публиковать Docker image в container registry.
 - Добавить deployment на VPS.
 - Настроить Prometheus alerting rules.
 - Расширить Grafana dashboard дополнительными panels.
